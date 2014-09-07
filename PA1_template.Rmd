@@ -1,0 +1,106 @@
+Reproducible Research Assignment1
+===============================================
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
+## Loading and preprocessing the data
+````{r,echo=F,warning=F}
+library("markdown")
+library("knitr")
+library(ggplot2)
+library(lattice)
+setwd("C:\\Users\\wenlihaoyu\\Desktop\\")
+data=read.csv("activity.csv",header=T)
+data$date=as.Date(data$date,'%Y-%m-%d')
+
+```
+## What is mean total number of steps taken per day?
+### 1. a histogram of the total number of steps taken each day
+```{r,echo=F,warning=F,fig.width=10}
+ggplot(data,aes(y=steps,x=date))+
+  geom_bar(stat="identity",width=0.7,position=position_dodge(1),fill="blue")+
+  theme(axis.text.x=element_text(angle=90),legend.position="none")
+```
+### 2. Calculate and report the mean and median total number of steps taken per day
+```{r,echo=F,warning=F}
+
+dstats=function(x) {c(mean=mean(x,na.rm=T),median=median(x,na.rm=T))}
+by(data$steps,data$date,dstats)
+```
+##  What is the average daily activity pattern?
+###  1.Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+
+```{r,echo=F,warning=F}
+intel=aggregate(data$steps,by=list(interval=data$interval),mean,na.rm=T)
+plot(x=intel$interval,y=intel$x,type='l',ylab='Number of steps',xlab="interval")
+```
+### 2.Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+```{r,echo=F,warning=F}
+y=function(x){c(mean=mean(x,na.rm=T),maximum=max(x,na.rm=T))}
+y(data$interval)
+```
+##  Imputing missing values
+###  1.Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+The total number of missing values: `r sum(is.na(data$steps))`
+inte
+###  2.Devise a strategy for filling in all of the missing values in the dataset.
+Using the mean for that day for filling in all of the missing values
+Find the the missing values locations
+```{r,echo=F,warning=F}
+
+fill_na=function(data){
+  meanday=aggregate(data[,1],by=list(date=data$date),mean,na.rm=T)
+  location=which(is.na(data$steps))
+for(i in 1:length(location))
+{
+if (is.na(meanday[,2][which(meanday[,1]==data$date[location[i]])]))
+data$steps[location[i]]=mean(data$steps,na.rm=T)
+else
+data$steps[location[i]]=meanday[,2][which(meanday[,1]==data$date[location[i]])]
+}
+data
+}
+```
+### 3.Create a new dataset that is equal to the original dataset but with the missing data filled in
+```{r,echo=F,warning=F}
+newdata=fill_na(data)
+```
+###  4.Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+#### The histogram of the total number of steps taken each day
+```{r,echo=F,warning=F,fig.width=10}
+ggplot(newdata,aes(y=steps,x=date))+
+  geom_bar(stat="identity",width=0.7,position=position_dodge(1),fill="blue")+
+  theme(axis.text.x=element_text(angle=90),legend.position="none")
+```
+#### The mean and median total number of steps taken per day
+```{r,echo=F,warning=F}
+dstats=function(x) {c(mean=mean(x,na.rm=T),median=median(x,na.rm=T))}
+by(newdata$steps,newdata$date,dstats)
+```
+#### So,these values differ from the estimates from the first part of the assignment,and the *mean* is the impact of imputing missing data on the estimates of the total daily number of steps.
+
+## Are there differences in activity patterns between weekdays and weekends?
+### 1.Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+```{r,echo=F,warning=F}
+
+weeks=c("6/9/2004","7/9/2004","1/9/2004","2/9/2004","3/9/2004","4/9/2004","5/9/2004")
+weeks=weekdays(as.Date(weeks, '%d/%m/%Y'))
+newdata$week=weekdays(newdata[,2])
+##weekend datas
+newdata[newdata$week%in%weeks[6:7],]$week="weekend"
+###weekday datas
+newdata[newdata$week%in%weeks[1:5],]$week="weekday"
+newdata1=aggregate(newdata$steps,by=list(interval=newdata$interval,week=newdata$week),mean,na.rm=T)
+
+names(newdata1)=c("interval","week","steps")
+
+xyplot(steps~interval|week,data=newdata1,type="l")
+
+```
+
+
+
